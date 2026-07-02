@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Radar — 上傳履歷，AI 幫你找工作</title>
+<style>
+  :root{--bg:#0a0e17;--panel:#111826;--line:#1e2a3d;--cy:#3ad0ff;--grn:#3affa0;--gold:#ffcf5c;--dim:#7d8ba3;--txt:#e6eefc}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,"Segoe UI",Roboto,"PingFang TC",sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:26px 20px 60px}
+  h1{font-size:24px;margin:0 0 4px}h1 span{color:var(--cy)}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:22px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .panel h2{font-size:15px;margin:0 0 10px;color:var(--cy)}
+  textarea,input{width:100%;background:#0b1220;border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;padding:10px;resize:vertical}
+  textarea{min-height:150px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  .row input{flex:1;min-width:180px}
+  button{background:var(--cy);color:#001019;border:none;border-radius:8px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:14px}
+  button.ghost{background:none;color:var(--cy);border:1px solid var(--cy)}
+  button:disabled{opacity:.55;cursor:default}
+  .msg{font-size:13px;color:var(--grn);margin-left:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;position:relative}
+  .card .x{position:absolute;top:10px;right:10px;background:none;border:1px solid #ff5a6a55;color:#ff5a6a;border-radius:6px;width:26px;height:26px;padding:0;font-size:13px}
+  .fit{font-size:22px;font-weight:800}
+  .t{color:#fff;font-size:14px;font-weight:700;line-height:1.35;padding-right:28px}
+  .zh{color:var(--cy);font-size:12px;margin:3px 0 4px}
+  .meta{font-size:12px;color:#9fc0e8}
+  .sal{font-size:12px;color:var(--gold);margin-top:2px}
+  .why{font-size:12px;color:var(--dim);margin-top:6px}
+  .card a{display:inline-block;margin-top:9px;font-size:12px;color:var(--cy);text-decoration:none;border:1px solid #3ad0ff55;border-radius:6px;padding:4px 12px}
+  .empty{color:var(--dim);padding:30px;text-align:center}
+  .warn{background:#3a2a10;border-color:#ffcf5c55;color:var(--gold)}
+  .badge{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📡 Job <span>Radar</span></h1>
+  <div class="sub">貼上你的履歷（任何語言），AI 讀懂後自動搜職缺、逐一評適配分 + 理由，英文職缺附中文翻譯。不喜歡的按 ✕，之後越推越準。</div>
+
+  {% if not has_llm %}
+  <div class="panel warn">⚠️ 尚未設定 LLM。請設環境變數 <code>OPENAI_API_KEY</code>（可搭 <code>OPENAI_BASE_URL</code> 用任何相容端點）後重啟。</div>
+  {% endif %}
+
+  <div class="panel">
+    <h2>① 你的履歷</h2>
+    <textarea id="resume" placeholder="把履歷內容貼進來（中英文皆可）…">{{ '' }}</textarea>
+    <h2 style="margin-top:14px">② 額外求職條件（選填）</h2>
+    <textarea id="custom" placeholder="用白話寫死條件，例：遠端優先、月薪7萬以上、想做 AI 導入顧問、不要金融業…" style="min-height:70px">{{ custom }}</textarea>
+    <div class="row">
+      <input id="location" placeholder="地區（給 LinkedIn 用，例 Taiwan / Taipei / Remote）" value="{{ location or 'Taiwan' }}">
+      <button id="btn-analyze" onclick="analyze()">🧠 讓 AI 讀懂我的履歷</button>
+      <span class="msg" id="msg-analyze"></span>
+    </div>
+    <div id="profile-box" style="display:{{ 'block' if profile else 'none' }};margin-top:12px;padding:12px;background:#0b1220;border:1px solid var(--line);border-radius:8px;font-size:13px;color:#cfe;line-height:1.7">{{ profile }}</div>
+  </div>
+
+  <div class="panel">
+    <div class="row" style="margin-top:0;justify-content:space-between">
+      <h2 style="margin:0">③ 配對職缺</h2>
+      <button class="ghost" id="btn-scan" onclick="scan()">🔍 開始搜尋 + 評分</button>
+    </div>
+    <div class="grid" id="jobs"></div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function analyze(){
+  const b=$('#btn-analyze'),m=$('#msg-analyze');
+  const resume=$('#resume').value.trim();
+  if(resume.length<40){m.textContent='履歷內容太短';return;}
+  b.disabled=true;m.textContent='AI 讀取中…';
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({resume,custom:$('#custom').value,location:$('#location').value})}).then(x=>x.json());
+    if(r.ok){$('#profile-box').style.display='block';
+      $('#profile-box').innerHTML='🧠 <b>AI 讀到的你</b>：'+esc(r.summary)+'<br><span class="badge">搜尋關鍵字</span> '+esc((r.terms||[]).join(' · '));
+      m.textContent='✓ 懂了！可以按開始搜尋';}
+    else m.textContent='失敗：'+(r.error||'');
+  }catch(e){m.textContent='失敗：'+e;}
+  b.disabled=false;
+}
+
+async function scan(){
+  const b=$('#btn-scan'),box=$('#jobs');
+  b.disabled=true;b.textContent='搜尋中…(約30-60秒)';
+  box.innerHTML='<div class="empty">正在搜職缺並逐一評分…</div>';
+  try{
+    const r=await fetch('/api/scan',{method:'POST'}).then(x=>x.json());
+    if(!r.ok){box.innerHTML='<div class="empty">'+esc(r.error||'失敗')+'</div>';}
+    else if(!r.jobs.length){box.innerHTML='<div class="empty">沒有達標職缺，試試放寬條件或換關鍵字</div>';}
+    else box.innerHTML=r.jobs.map(card).join('');
+  }catch(e){box.innerHTML='<div class="empty">搜尋逾時，再試一次</div>';}
+  b.disabled=false;b.textContent='🔍 重新搜尋 + 評分';
+}
+
+function card(j){
+  const fit=j.fit!=null?j.fit:null;
+  const col=fit==null?'var(--dim)':fit>=80?'var(--grn)':fit>=65?'var(--cy)':'var(--gold)';
+  return `<div class="card" data-k="${esc(j.key)}">
+    <button class="x" onclick="dislike(this)" data-k="${esc(j.key)}" data-t="${esc(j.title)}" title="不喜歡">✕</button>
+    ${fit!=null?`<div class="fit" style="color:${col}">${fit}%</div>`:''}
+    <div class="t">${esc(j.title)}</div>
+    ${j.title_zh?`<div class="zh">🈶 ${esc(j.title_zh)}</div>`:''}
+    <div class="meta">🏢 ${esc(j.company)}　📍 ${esc(j.loc)}　<span class="badge">${esc(j.source)}</span></div>
+    ${j.salary?`<div class="sal">💰 ${esc(j.salary)}</div>`:''}
+    ${j.reason?`<div class="why">💡 ${esc(j.reason)}</div>`:''}
+    <a href="${esc(j.url)}" target="_blank">查看職缺 →</a>
+  </div>`;
+}
+
+async function dislike(btn){
+  const r=await fetch('/api/dislike',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({key:btn.dataset.k,title:btn.dataset.t})}).then(x=>x.json()).catch(()=>null);
+  if(r&&r.ok){const c=btn.closest('.card');c.style.transition='.2s';c.style.opacity='0';setTimeout(()=>c.remove(),200);}
+}
+</script>
+</body>
+</html>
