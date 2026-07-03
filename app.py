@@ -114,21 +114,26 @@ def fetch_104(terms):
     try:
         with sync_playwright() as pw:
             b = pw.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
-            pg = b.new_page(user_agent=UA)
-            for term in terms[:2]:
-                try:
-                    pg.goto(f"https://www.104.com.tw/jobs/search/?keyword={urllib.parse.quote(term)}&order=16",
-                            timeout=40000)
-                    pg.wait_for_timeout(6000)   # let Cloudflare + SPA settle
-                    for j in pg.evaluate(js):
-                        u = j.get("url", "")
-                        if u and u not in seen and j.get("title"):
-                            seen.add(u)
-                            out.append({"source": "104", "title": j["title"], "company": j.get("company", ""),
-                                        "loc": j.get("loc", ""), "salary": j.get("salary", ""), "url": u})
-                except Exception:
-                    pass
-            b.close()
+            try:
+                pg = b.new_page(user_agent=UA)
+                for term in terms[:2]:
+                    try:
+                        pg.goto(f"https://www.104.com.tw/jobs/search/?keyword={urllib.parse.quote(term)}&order=16",
+                                timeout=40000)
+                        try:                              # wait for cards (cap 8s) instead of blind sleep
+                            pg.wait_for_selector("a[href*='/job/']", timeout=8000)
+                        except Exception:
+                            pass
+                        for j in pg.evaluate(js):
+                            u = j.get("url", "")
+                            if u and u not in seen and j.get("title"):
+                                seen.add(u)
+                                out.append({"source": "104", "title": j["title"], "company": j.get("company", ""),
+                                            "loc": j.get("loc", ""), "salary": j.get("salary", ""), "url": u})
+                    except Exception:
+                        pass
+            finally:
+                b.close()                                 # always close, even on error (no zombie Chromium)
     except Exception:
         pass
     return out
