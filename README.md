@@ -1,5 +1,7 @@
 # 📡 Job Radar
 
+**English** · [繁體中文](README.zh-TW.md)
+
 Upload your resume → an LLM builds your profile, scrapes public job boards, and
 **ranks every posting 0–100 against *your* resume** — each with a one-line
 reason. Open the full JD (optionally translated), shortlist the good ones, and
