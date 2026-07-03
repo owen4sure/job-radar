@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Job Radar — 上傳履歷，AI 幫你找工作</title>
+<title>Job Radar — upload your resume, get AI-scored jobs</title>
 <style>
-  :root{--bg:#0a0e17;--panel:#111826;--line:#1e2a3d;--cy:#3ad0ff;--grn:#3affa0;--gold:#ffcf5c;--dim:#7d8ba3;--txt:#e6eefc}
+  :root{--bg:#0a0e17;--panel:#111826;--line:#1e2a3d;--cy:#3ad0ff;--grn:#3affa0;--gold:#ffcf5c;--vio:#c9a3ff;--dim:#7d8ba3;--txt:#e6eefc}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.6 -apple-system,"Segoe UI",Roboto,"PingFang TC",sans-serif}
   .wrap{max-width:1200px;margin:0 auto;padding:26px 20px 60px}
@@ -13,55 +13,69 @@
   .sub{color:var(--dim);font-size:13px;margin-bottom:22px}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
   .panel h2{font-size:15px;margin:0 0 10px;color:var(--cy)}
-  textarea,input{width:100%;background:#0b1220;border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;padding:10px;resize:vertical}
-  textarea{min-height:150px}
+  textarea,input[type=text]{width:100%;background:#0b1220;border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;padding:10px;resize:vertical}
+  textarea{min-height:120px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
-  .row input{flex:1;min-width:180px}
-  button{background:var(--cy);color:#001019;border:none;border-radius:8px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:14px}
+  .row input[type=text]{flex:1;min-width:180px}
+  button{background:var(--cy);color:#001019;border:none;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;font-size:14px}
   button.ghost{background:none;color:var(--cy);border:1px solid var(--cy)}
   button:disabled{opacity:.55;cursor:default}
-  .msg{font-size:13px;color:var(--grn);margin-left:10px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:8px}
+  .tab{background:none;border:1px solid var(--line);color:var(--dim);font-weight:600}
+  .tab.on{background:var(--cy);color:#021}
+  .msg{font-size:13px;color:var(--grn);margin-left:6px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:10px;align-items:start}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px;position:relative}
   .card .x{position:absolute;top:10px;right:10px;background:none;border:1px solid #ff5a6a55;color:#ff5a6a;border-radius:6px;width:26px;height:26px;padding:0;font-size:13px}
   .fit{font-size:22px;font-weight:800}
   .t{color:#fff;font-size:14px;font-weight:700;line-height:1.35;padding-right:28px}
   .zh{color:var(--cy);font-size:12px;margin:3px 0 4px}
-  .meta{font-size:12px;color:#9fc0e8}
-  .sal{font-size:12px;color:var(--gold);margin-top:2px}
-  .why{font-size:12px;color:var(--dim);margin-top:6px}
-  .card a{display:inline-block;margin-top:9px;font-size:12px;color:var(--cy);text-decoration:none;border:1px solid #3ad0ff55;border-radius:6px;padding:4px 12px}
+  .meta{font-size:12px;color:#9fc0e8}.badge{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  .sal{font-size:12px;color:var(--gold);margin-top:2px}.why{font-size:12px;color:var(--dim);margin-top:6px}
+  .acts{margin-top:9px;display:flex;gap:7px;flex-wrap:wrap}
+  .acts a,.acts button{font-size:12px;padding:4px 10px;border-radius:6px;text-decoration:none;background:none;cursor:pointer}
+  .acts a{color:var(--cy);border:1px solid #3ad0ff55}
+  .acts .save{color:var(--gold);border:1px solid #ffcf5c55}.acts .save.on{background:var(--gold);color:#021}
+  .acts .jd{color:var(--vio);border:1px solid #c9a3ff55}
+  .jdbox{display:none;margin-top:10px;padding:10px 12px;background:#0b1220;border:1px solid var(--line);border-radius:8px;font-size:12px;line-height:1.7;white-space:pre-wrap;overscroll-behavior:contain}
   .empty{color:var(--dim);padding:30px;text-align:center}
   .warn{background:#3a2a10;border-color:#ffcf5c55;color:var(--gold)}
-  .badge{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>📡 Job <span>Radar</span></h1>
-  <div class="sub">貼上你的履歷（任何語言），AI 讀懂後自動搜職缺、逐一評適配分 + 理由，英文職缺附中文翻譯。不喜歡的按 ✕，之後越推越準。</div>
+  <div class="sub">Upload your resume — an LLM reads it, scrapes public boards, and scores every job for <b>you</b>. Shortlist, open full JDs, and dislike to sharpen matches.</div>
 
   {% if not has_llm %}
-  <div class="panel warn">⚠️ 尚未設定 LLM。請設環境變數 <code>OPENAI_API_KEY</code>（可搭 <code>OPENAI_BASE_URL</code> 用任何相容端點）後重啟。</div>
+  <div class="panel warn">⚠️ No LLM configured. Copy <code>.env.example</code> → <code>.env</code>, set <code>OPENAI_API_KEY</code>, and restart.</div>
   {% endif %}
 
   <div class="panel">
-    <h2>① 你的履歷</h2>
-    <textarea id="resume" placeholder="把履歷內容貼進來（中英文皆可）…">{{ '' }}</textarea>
-    <h2 style="margin-top:14px">② 額外求職條件（選填）</h2>
-    <textarea id="custom" placeholder="用白話寫死條件，例：遠端優先、月薪7萬以上、想做 AI 導入顧問、不要金融業…" style="min-height:70px">{{ custom }}</textarea>
-    <div class="row">
-      <input id="location" placeholder="地區（給 LinkedIn 用，例 Taiwan / Taipei / Remote）" value="{{ location or 'Taiwan' }}">
-      <button id="btn-analyze" onclick="analyze()">🧠 讓 AI 讀懂我的履歷</button>
-      <span class="msg" id="msg-analyze"></span>
+    <h2>① Your resume</h2>
+    <div class="row" style="margin-top:0">
+      <input type="file" id="pdf" accept=".pdf,.txt" style="font-size:12px;color:var(--dim)">
+      <button id="up" onclick="uploadPdf()">⬆️ Upload PDF &amp; let AI read it</button>
+      <span class="msg" id="upmsg"></span>
     </div>
-    <div id="profile-box" style="display:{{ 'block' if profile else 'none' }};margin-top:12px;padding:12px;background:#0b1220;border:1px solid var(--line);border-radius:8px;font-size:13px;color:#cfe;line-height:1.7">{{ profile }}</div>
+    <div style="font-size:12px;color:var(--dim);margin:10px 0 4px">…or paste the text:</div>
+    <textarea id="resume" placeholder="Paste your resume (any language)…"></textarea>
+    <h2 style="margin-top:14px">② Preferences (optional)</h2>
+    <textarea id="custom" placeholder="Plain words: remote-first, 70k+, want AI product / implementation roles, no finance…" style="min-height:60px">{{ custom }}</textarea>
+    <div class="row">
+      <input type="text" id="location" placeholder="Location for LinkedIn (e.g. Taiwan / Remote / London)" value="{{ location or 'Taiwan' }}">
+      <button id="an" onclick="analyze()">🧠 Save &amp; understand</button>
+      <span class="msg" id="anmsg"></span>
+    </div>
+    <div id="profbox" style="display:{{ 'block' if profile else 'none' }};margin-top:12px;padding:12px;background:#0b1220;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.7">{{ profile }}</div>
   </div>
 
   <div class="panel">
     <div class="row" style="margin-top:0;justify-content:space-between">
-      <h2 style="margin:0">③ 配對職缺</h2>
-      <button class="ghost" id="btn-scan" onclick="scan()">🔍 開始搜尋 + 評分</button>
+      <div style="display:flex;gap:8px">
+        <button class="tab on" id="tab-scan" onclick="tab('scan')">🔍 Matches</button>
+        <button class="tab" id="tab-saved" onclick="tab('saved')">⭐ Shortlist <span id="scount">0</span></button>
+      </div>
+      <button class="ghost" id="scan" onclick="scan()">🔍 Scan + score</button>
     </div>
     <div class="grid" id="jobs"></div>
   </div>
@@ -70,56 +84,92 @@
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TRANSLATE=Boolean("{{ translate_to }}".trim());
+let curTab='scan', savedKeys=new Set();
 
-async function analyze(){
-  const b=$('#btn-analyze'),m=$('#msg-analyze');
-  const resume=$('#resume').value.trim();
-  if(resume.length<40){m.textContent='履歷內容太短';return;}
-  b.disabled=true;m.textContent='AI 讀取中…';
-  try{
-    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({resume,custom:$('#custom').value,location:$('#location').value})}).then(x=>x.json());
-    if(r.ok){$('#profile-box').style.display='block';
-      $('#profile-box').innerHTML='🧠 <b>AI 讀到的你</b>：'+esc(r.summary)+'<br><span class="badge">搜尋關鍵字</span> '+esc((r.terms||[]).join(' · '));
-      m.textContent='✓ 懂了！可以按開始搜尋';}
-    else m.textContent='失敗：'+(r.error||'');
-  }catch(e){m.textContent='失敗：'+e;}
+async function uploadPdf(){
+  const b=$('#up'),m=$('#upmsg'),fi=$('#pdf');
+  if(!fi.files.length){m.textContent='Choose a PDF first';return;}
+  b.disabled=true;m.textContent='Reading…';
+  const fd=new FormData();fd.append('file',fi.files[0]);
+  try{const r=await fetch('/api/resume',{method:'POST',body:fd}).then(x=>x.json());
+    if(r.ok){showProfile(r);m.textContent='✓ Got it — hit Scan';}else m.textContent='Failed: '+(r.error||'');}
+  catch(e){m.textContent='Failed: '+e;}
   b.disabled=false;
 }
+async function analyze(){
+  const b=$('#an'),m=$('#anmsg');b.disabled=true;m.textContent='Working…';
+  try{const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({resume:$('#resume').value,custom:$('#custom').value,location:$('#location').value})}).then(x=>x.json());
+    if(r.ok){showProfile(r);m.textContent='✓ Saved';}else m.textContent='Failed: '+(r.error||'');}
+  catch(e){m.textContent='Failed: '+e;}
+  b.disabled=false;setTimeout(()=>{m.textContent='';},5000);
+}
+function showProfile(r){const p=$('#profbox');p.style.display='block';
+  p.innerHTML='🧠 <b>What the AI read:</b> '+esc(r.summary||'')+(r.terms?'<br><span class="badge">search terms</span> '+esc(r.terms.join(' · ')):'');}
 
-async function scan(){
-  const b=$('#btn-scan'),box=$('#jobs');
-  b.disabled=true;b.textContent='搜尋中…(約30-60秒)';
-  box.innerHTML='<div class="empty">正在搜職缺並逐一評分…</div>';
-  try{
-    const r=await fetch('/api/scan',{method:'POST'}).then(x=>x.json());
-    if(!r.ok){box.innerHTML='<div class="empty">'+esc(r.error||'失敗')+'</div>';}
-    else if(!r.jobs.length){box.innerHTML='<div class="empty">沒有達標職缺，試試放寬條件或換關鍵字</div>';}
-    else box.innerHTML=r.jobs.map(card).join('');
-  }catch(e){box.innerHTML='<div class="empty">搜尋逾時，再試一次</div>';}
-  b.disabled=false;b.textContent='🔍 重新搜尋 + 評分';
+function tab(t){curTab=t;$('#tab-scan').className='tab'+(t==='scan'?' on':'');$('#tab-saved').className='tab'+(t==='saved'?' on':'');render();}
+
+async function scan(){const b=$('#scan');b.disabled=true;b.textContent='Scanning… (~30-60s)';
+  $('#jobs').innerHTML='<div class="empty">Searching boards and scoring…</div>';
+  try{const r=await fetch('/api/scan',{method:'POST'}).then(x=>x.json());window._scan=r.jobs||[];window._scanNote=r.note;}
+  catch(e){window._scan=[];window._scanNote='Timed out, try again';}
+  b.disabled=false;b.textContent='🔍 Scan + score';curTab='scan';tab('scan');
+}
+
+async function render(){
+  const box=$('#jobs');
+  const sd=await fetch('/api/saved').then(x=>x.json()).catch(()=>({jobs:[]}));
+  savedKeys=new Set((sd.jobs||[]).map(j=>j.key));$('#scount').textContent=savedKeys.size;
+  let list;
+  if(curTab==='saved'){list=sd.jobs||[];if(!list.length){box.innerHTML='<div class="empty">Nothing shortlisted yet. Hit ☆ on a match.</div>';return;}}
+  else{list=window._scan;if(!list){box.innerHTML='<div class="empty">Add a resume, then hit “Scan + score”.</div>';return;}
+    if(!list.length){box.innerHTML='<div class="empty">'+esc(window._scanNote||'No matches — broaden your keywords/location.')+'</div>';return;}}
+  box.innerHTML=list.map(card).join('');
 }
 
 function card(j){
-  const fit=j.fit!=null?j.fit:null;
-  const col=fit==null?'var(--dim)':fit>=80?'var(--grn)':fit>=65?'var(--cy)':'var(--gold)';
-  return `<div class="card" data-k="${esc(j.key)}">
-    <button class="x" onclick="dislike(this)" data-k="${esc(j.key)}" data-t="${esc(j.title)}" title="不喜歡">✕</button>
+  const fit=j.fit;const col=fit==null?'var(--dim)':fit>=80?'var(--grn)':fit>=65?'var(--cy)':'var(--gold)';
+  const k=j.key||((j.company||'')+'|'+(j.title||'')).toLowerCase();
+  const isSaved=savedKeys.has(k);
+  return `<div class="card" data-k="${esc(k)}">
+    <button class="x" onclick="dislike(this)" data-k="${esc(k)}" data-t="${esc(j.title)}" title="Not for me">✕</button>
     ${fit!=null?`<div class="fit" style="color:${col}">${fit}%</div>`:''}
     <div class="t">${esc(j.title)}</div>
     ${j.title_zh?`<div class="zh">🈶 ${esc(j.title_zh)}</div>`:''}
     <div class="meta">🏢 ${esc(j.company)}　📍 ${esc(j.loc)}　<span class="badge">${esc(j.source)}</span></div>
     ${j.salary?`<div class="sal">💰 ${esc(j.salary)}</div>`:''}
     ${j.reason?`<div class="why">💡 ${esc(j.reason)}</div>`:''}
-    <a href="${esc(j.url)}" target="_blank">查看職缺 →</a>
+    <div class="acts">
+      <a href="${esc(j.url)}" target="_blank">Open ↗</a>
+      <button class="jd" onclick='showJD(this,${JSON.stringify(j).replace(/'/g,"&#39;")})'>📄 Full JD${TRANSLATE?' + translate':''}</button>
+      <button class="save${isSaved?' on':''}" onclick='toggleSave(this,${JSON.stringify(j).replace(/'/g,"&#39;")})'>${isSaved?'★ Saved':'☆ Save'}</button>
+    </div>
+    <div class="jdbox"></div>
   </div>`;
 }
 
-async function dislike(btn){
-  const r=await fetch('/api/dislike',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({key:btn.dataset.k,title:btn.dataset.t})}).then(x=>x.json()).catch(()=>null);
-  if(r&&r.ok){const c=btn.closest('.card');c.style.transition='.2s';c.style.opacity='0';setTimeout(()=>c.remove(),200);}
+async function showJD(btn,j){
+  const box=btn.closest('.card').querySelector('.jdbox');
+  if(box.style.display==='block'){box.style.display='none';return;}
+  box.style.display='block';box.textContent='Fetching…';
+  try{const r=await fetch('/api/jd',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({job:j,translate:TRANSLATE})}).then(x=>x.json());
+    box.textContent=(r.jd_translated||r.jd||r.note||'No description');}
+  catch(e){box.textContent='Failed to load';}
 }
+async function toggleSave(btn,j){
+  const r=await fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({job:j})}).then(x=>x.json());
+  const k=j.key||((j.company||'')+'|'+(j.title||'')).toLowerCase();
+  if(r.saved){savedKeys.add(k);btn.textContent='★ Saved';btn.classList.add('on');}
+  else{savedKeys.delete(k);btn.textContent='☆ Save';btn.classList.remove('on');if(curTab==='saved')btn.closest('.card').remove();}
+  $('#scount').textContent=savedKeys.size;
+}
+async function dislike(btn){
+  await fetch('/api/dislike',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:btn.dataset.k,title:btn.dataset.t})}).catch(()=>{});
+  const c=btn.closest('.card');c.style.transition='.2s';c.style.opacity='0';setTimeout(()=>c.remove(),200);
+}
+render();
 </script>
 </body>
 </html>

@@ -1,0 +1,7 @@
+services:
+  job-radar:
+    build: .
+    ports: ["8080:8080"]
+    env_file: .env
+    volumes: ["./data:/app/data"]   # persist profile / shortlist / dislikes
+    restart: unless-stopped
