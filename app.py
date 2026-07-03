@@ -91,6 +91,49 @@ def _extract_pdf(raw_bytes, path):
 
 
 # ---------- scrapers (public endpoints, no login) ----------
+def fetch_104(terms):
+    """104 blocks API scraping (Cloudflare) — optional headless-browser fetch.
+    Only runs if `playwright` is installed (pip install playwright && playwright
+    install chromium). Returns [] otherwise, so the app stays lightweight by default."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except Exception:
+        return []
+    out, seen = [], set()
+    js = r"""() => { const res=[];
+      document.querySelectorAll(".info-container, [class*='vue-recycle']").forEach(card => {
+        const a = card.querySelector("a[href*='/job/']"); if(!a) return;
+        const title=(a.innerText||'').trim(); if(!title||title.length>60) return;
+        const comp=card.querySelector("a[href*='/company/']:not([href*='/company/search'])");
+        const loc=card.querySelector("a[href*='area=']");
+        let sal=''; card.querySelectorAll("a[href*='joblist_tag']").forEach(x=>{
+          const t=(x.innerText||'').trim(); if(/月薪|年薪|待遇|面議|時薪/.test(t)&&!sal) sal=t; });
+        res.push({title, company:(comp?comp.innerText.trim():''),
+                  loc:(loc?loc.innerText.trim():''), salary:sal, url:a.href.split('?')[0]}); });
+      return res; }"""
+    try:
+        with sync_playwright() as pw:
+            b = pw.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
+            pg = b.new_page(user_agent=UA)
+            for term in terms[:2]:
+                try:
+                    pg.goto(f"https://www.104.com.tw/jobs/search/?keyword={urllib.parse.quote(term)}&order=16",
+                            timeout=40000)
+                    pg.wait_for_timeout(6000)   # let Cloudflare + SPA settle
+                    for j in pg.evaluate(js):
+                        u = j.get("url", "")
+                        if u and u not in seen and j.get("title"):
+                            seen.add(u)
+                            out.append({"source": "104", "title": j["title"], "company": j.get("company", ""),
+                                        "loc": j.get("loc", ""), "salary": j.get("salary", ""), "url": u})
+                except Exception:
+                    pass
+            b.close()
+    except Exception:
+        pass
+    return out
+
+
 def fetch_yourator(terms):
     out = []
     for term in terms:
@@ -263,7 +306,7 @@ async def scan(req: Request):
     if not prof.get("summary"):
         return JSONResponse({"ok": False, "error": "Add a resume first"}, status_code=400)
     terms = prof.get("terms") or ["Product Manager"]
-    jobs = fetch_yourator(terms) + fetch_linkedin(terms, prof.get("location", DEFAULT_LOCATION))
+    jobs = fetch_yourator(terms) + fetch_linkedin(terms, prof.get("location", DEFAULT_LOCATION)) + fetch_104(terms)
     if not jobs:
         return JSONResponse({"ok": True, "jobs": [], "note": "No jobs returned (try broader keywords/location)"})
     dislikes = _load(DISLIKES_PATH, {})

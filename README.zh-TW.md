@@ -22,7 +22,7 @@
 - **完整職缺說明**隨點隨看,可**選配翻譯**(設 `TRANSLATE_JD_TO`,例:`Traditional Chinese`)。
 - **自訂硬性條件** — 「只要遠端、月薪 7 萬以上、不要金融業」會變成最高優先的配對標準。
 - **追蹤清單**(⭐)存起你喜歡的;**不喜歡**(✕)按掉爛的——之後類似職缺分數自動降低。
-- **公開來源、免登入** — Yourator API + LinkedIn 訪客搜尋。
+- **公開來源、免登入** — Yourator API + LinkedIn 訪客搜尋。加裝 `playwright` 後還能抓 **104**(headless 繞過 Cloudflare)。
 - 全部存進 `./data/*.json`,刪掉就重置。
 
 ## 快速開始
@@ -77,7 +77,7 @@ cp .env.example .env          # 填你的 OPENAI_API_KEY
 ## 備註
 
 - 爬蟲只打公開端點、有禮貌;請遵守各站服務條款。
-- 104 刻意不爬(Cloudflare + SPA),一直壞。
+- 104 需要 headless 瀏覽器繞過 Cloudflare:`pip install playwright && playwright install chromium`,裝了就自動啟用;沒裝就略過(保持輕量)。
 - 這是獨立、自帶 LLM 的版本。它源自一個個人助理
   ([owen4sure/jarvis](https://github.com/owen4sure/jarvis)),在那裡同一套雷達還會做
   深度公司研究與 LinkedIn 一鍵投遞。

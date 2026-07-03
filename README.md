@@ -29,7 +29,7 @@ your AI Product Manager profile" beats scrolling 200 listings.
   top-priority matching standard.
 - **Shortlist** (⭐) the ones you like; **dislike** (✕) the ones you don't — and
   similar jobs score lower next time.
-- **Public sources, no login** — Yourator API + LinkedIn guest search.
+- **Public sources, no login** — Yourator API + LinkedIn guest search. Install `playwright` to also pull **104** (Taiwan; headless-renders past Cloudflare).
 - Everything persists to `./data/*.json`. Delete it to reset.
 
 ## Quick start
@@ -85,7 +85,7 @@ the same shape and include it in `scan()` — the scoring and UI need no changes
 ## Notes
 
 - Scrapers hit public endpoints politely; respect each site's terms of use.
-- 104 is intentionally not scraped (Cloudflare + SPA) — it breaks constantly.
+- 104 needs a headless browser to get past Cloudflare: `pip install playwright && playwright install chromium` — auto-enabled when present, skipped otherwise (stays lightweight).
 - This is the standalone, bring-your-own-LLM version. It grew out of a personal
   assistant ([owen4sure/jarvis](https://github.com/owen4sure/jarvis)), where the
   same radar also does deep company research and one-click LinkedIn apply.
